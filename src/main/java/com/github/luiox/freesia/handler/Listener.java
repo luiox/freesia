@@ -12,5 +12,7 @@ import java.lang.annotation.Target;
 public @interface Listener {
     Class<? extends EventFilter>[] filters() default {};
 
-    ListenerPriority priority() default ListenerPriority.NORMAL;
+    int priority() default 0;
+
+    boolean async() default false;
 }

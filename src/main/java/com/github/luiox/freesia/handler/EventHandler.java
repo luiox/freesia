@@ -7,7 +7,9 @@ public interface EventHandler extends Comparable<EventHandler> {
 
     Object getListener();
 
-    ListenerPriority getPriority();
+    int getPriority();
+
+    boolean isAsync();
 
     Iterable<EventFilter> getFilters();
 }

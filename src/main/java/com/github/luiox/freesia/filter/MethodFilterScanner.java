@@ -14,7 +14,7 @@ public final class MethodFilterScanner implements EventFilterScanner<Method> {
         Set<EventFilter> filters = new HashSet<>();
         for (Class<? extends EventFilter> filter : listener.getDeclaredAnnotation(Listener.class).filters()) {
             try {
-                filters.add(filter.newInstance());
+                filters.add(filter.getDeclaredConstructor().newInstance());
             } catch (Exception exception) {
                 exception.printStackTrace();
             }
