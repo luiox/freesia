@@ -1,8 +1,6 @@
-package me.canrad.freesia.impl.handler;
+package com.github.luiox.freesia.handler;
 
-import me.canrad.freesia.filter.EventFilter;
-import me.canrad.freesia.handler.EventHandler;
-import me.canrad.freesia.handler.ListenerPriority;
+import com.github.luiox.freesia.filter.EventFilter;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;

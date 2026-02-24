@@ -1,9 +1,7 @@
-package me.canrad.freesia.impl.handler;
+package com.github.luiox.freesia.handler;
 
-import me.canrad.freesia.filter.EventFilterScanner;
-import me.canrad.freesia.handler.EventHandler;
-import me.canrad.freesia.handler.EventHandlerScanner;
-import me.canrad.freesia.impl.filter.MethodFilterScanner;
+import com.github.luiox.freesia.filter.EventFilterScanner;
+import com.github.luiox.freesia.filter.MethodFilterScanner;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;

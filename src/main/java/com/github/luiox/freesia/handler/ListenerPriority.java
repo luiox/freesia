@@ -1,4 +1,4 @@
-package me.canrad.freesia.handler;
+package com.github.luiox.freesia.handler;
 
 public enum ListenerPriority {
     LOWEST(-114514),

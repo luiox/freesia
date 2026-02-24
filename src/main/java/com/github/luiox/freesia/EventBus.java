@@ -1,4 +1,4 @@
-package me.canrad.freesia;
+package com.github.luiox.freesia;
 
 public interface EventBus {
     <E> E post(E object);

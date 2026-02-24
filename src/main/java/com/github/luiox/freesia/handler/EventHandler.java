@@ -1,6 +1,6 @@
-package me.canrad.freesia.handler;
+package com.github.luiox.freesia.handler;
 
-import me.canrad.freesia.filter.EventFilter;
+import com.github.luiox.freesia.filter.EventFilter;
 
 public interface EventHandler extends Comparable<EventHandler> {
     <E> void handle(E paramE);

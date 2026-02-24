@@ -1,7 +1,6 @@
-package me.canrad.freesia.impl.dispatch;
+package com.github.luiox.freesia.dispatch;
 
-import me.canrad.freesia.dispatch.EventDispatcher;
-import me.canrad.freesia.handler.EventHandler;
+import com.github.luiox.freesia.handler.EventHandler;
 
 import java.util.Collections;
 import java.util.Map;

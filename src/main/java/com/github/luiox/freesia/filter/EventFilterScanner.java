@@ -1,4 +1,4 @@
-package me.canrad.freesia.filter;
+package com.github.luiox.freesia.filter;
 
 import java.util.Set;
 

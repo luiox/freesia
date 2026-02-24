@@ -1,4 +1,4 @@
-package me.canrad.freesia.handler;
+package com.github.luiox.freesia.handler;
 
 import java.util.Map;
 import java.util.Set;

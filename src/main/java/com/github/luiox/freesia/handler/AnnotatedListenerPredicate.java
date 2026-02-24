@@ -1,4 +1,4 @@
-package me.canrad.freesia.impl.handler;
+package com.github.luiox.freesia.handler;
 
 import java.lang.reflect.Method;
 import java.util.function.Predicate;

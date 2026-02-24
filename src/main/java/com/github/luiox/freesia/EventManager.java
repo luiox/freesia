@@ -1,11 +1,10 @@
-package me.canrad.freesia.impl;
+package com.github.luiox.freesia;
 
-import me.canrad.freesia.EventBus;
-import me.canrad.freesia.dispatch.EventDispatcher;
-import me.canrad.freesia.handler.EventHandler;
-import me.canrad.freesia.handler.EventHandlerScanner;
-import me.canrad.freesia.impl.dispatch.MethodEventDispatcher;
-import me.canrad.freesia.impl.handler.MethodHandlerScanner;
+import com.github.luiox.freesia.dispatch.EventDispatcher;
+import com.github.luiox.freesia.handler.EventHandler;
+import com.github.luiox.freesia.handler.EventHandlerScanner;
+import com.github.luiox.freesia.dispatch.MethodEventDispatcher;
+import com.github.luiox.freesia.handler.MethodHandlerScanner;
 
 import java.util.Map;
 import java.util.Set;

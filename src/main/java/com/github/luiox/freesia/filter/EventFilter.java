@@ -1,6 +1,6 @@
-package me.canrad.freesia.filter;
+package com.github.luiox.freesia.filter;
 
-import me.canrad.freesia.handler.EventHandler;
+import com.github.luiox.freesia.handler.EventHandler;
 
 public interface EventFilter<E> {
     boolean test(EventHandler paramEventHandler, E paramE);
