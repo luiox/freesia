@@ -21,3 +21,12 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
+tasks.register('benchmarkTest', Test) {
+    useJUnitPlatform()
+    include '**/EventManagerPerformanceTest.class'
+    systemProperty 'freesia.benchmark', 'true'
+    testLogging {
+        showStandardStreams = true
+    }
+}

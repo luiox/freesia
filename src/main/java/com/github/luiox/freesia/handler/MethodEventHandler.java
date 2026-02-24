@@ -45,14 +45,26 @@ public final class MethodEventHandler implements EventHandler {
     private EventAction createEventAction(Method targetMethod, Object target) {
         try {
             MethodHandle implementation = LOOKUP.unreflect(targetMethod);
-            if (!Modifier.isStatic(targetMethod.getModifiers()))
-                implementation = implementation.bindTo(target);
-
-            MethodType factoryType = MethodType.methodType(EventAction.class);
             MethodType erasedSignature = MethodType.methodType(void.class, Object.class);
             MethodType instantiatedSignature = MethodType.methodType(void.class, targetMethod.getParameterTypes()[0]);
 
-            CallSite callSite = LambdaMetafactory.metafactory(
+            MethodType factoryType;
+            CallSite callSite;
+            if (Modifier.isStatic(targetMethod.getModifiers())) {
+                factoryType = MethodType.methodType(EventAction.class);
+                callSite = LambdaMetafactory.metafactory(
+                        LOOKUP,
+                        "invoke",
+                        factoryType,
+                        erasedSignature,
+                        implementation,
+                        instantiatedSignature
+                );
+                return (EventAction) callSite.getTarget().invokeExact();
+            }
+
+            factoryType = MethodType.methodType(EventAction.class, targetMethod.getDeclaringClass());
+            callSite = LambdaMetafactory.metafactory(
                     LOOKUP,
                     "invoke",
                     factoryType,
@@ -60,7 +72,7 @@ public final class MethodEventHandler implements EventHandler {
                     implementation,
                     instantiatedSignature
             );
-            return (EventAction) callSite.getTarget().invokeExact();
+            return (EventAction) callSite.getTarget().invoke(target);
         } catch (Throwable throwable) {
             throw new RuntimeException("Could not create lambda event action for method: " + targetMethod, throwable);
         }
