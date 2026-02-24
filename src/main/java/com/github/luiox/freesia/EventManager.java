@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.Objects;
 
 public class EventManager implements EventBus {
     private final Map<Object, Map<Class<?>, List<EventHandler>>> listenerHandlers = new ConcurrentHashMap<>();
@@ -30,6 +31,7 @@ public class EventManager implements EventBus {
     }
 
     public <E> E post(E event) {
+        Objects.requireNonNull(event, "event");
         CopyOnWriteArrayList<EventHandler> handlers = this.handlersByEventType.get(event.getClass());
         if (handlers == null || handlers.isEmpty())
             return event;
@@ -48,10 +50,12 @@ public class EventManager implements EventBus {
     }
 
     public boolean isRegistered(Object listener) {
+        Objects.requireNonNull(listener, "listener");
         return this.listenerHandlers.containsKey(listener);
     }
 
-    public boolean addListener(Object listenerContainer) {
+    public synchronized boolean register(Object listenerContainer) {
+        Objects.requireNonNull(listenerContainer, "listenerContainer");
         if (this.listenerHandlers.containsKey(listenerContainer))
             return false;
 
@@ -70,7 +74,8 @@ public class EventManager implements EventBus {
         return (this.listenerHandlers.put(listenerContainer, indexedHandlers) == null);
     }
 
-    public boolean removeListener(Object listenerContainer) {
+    public synchronized boolean unregister(Object listenerContainer) {
+        Objects.requireNonNull(listenerContainer, "listenerContainer");
         Map<Class<?>, List<EventHandler>> registeredHandlers = this.listenerHandlers.remove(listenerContainer);
         if (registeredHandlers == null)
             return false;

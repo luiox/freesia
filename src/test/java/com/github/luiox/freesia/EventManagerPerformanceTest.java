@@ -14,7 +14,7 @@ class EventManagerPerformanceTest {
 
         EventManager eventManager = new EventManager();
         BenchmarkListener listener = new BenchmarkListener();
-        eventManager.addListener(listener);
+        eventManager.register(listener);
 
         int warmup = 200_000;
         int iterations = 2_000_000;

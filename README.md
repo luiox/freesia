@@ -79,10 +79,12 @@ import com.github.luiox.freesia.EventManager;
 EventBus bus = new EventManager();
 TradeListener listener = new TradeListener();
 
-bus.addListener(listener);
+bus.register(listener);
 bus.post(new PriceTickEvent(100.25));
-bus.removeListener(listener);
+bus.unregister(listener);
 ```
+
+兼容说明：`addListener/removeListener` 仍可用，但已标记为兼容别名，建议迁移到 `register/unregister`。
 
 ## 单元测试
 

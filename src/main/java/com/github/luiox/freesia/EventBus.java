@@ -5,7 +5,7 @@ public interface EventBus {
 
     boolean isRegistered(Object object);
 
-    boolean addListener(Object object);
+    boolean register(Object object);
 
-    boolean removeListener(Object object);
+    boolean unregister(Object object);
 }

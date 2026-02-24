@@ -30,16 +30,16 @@ class EventManagerTest {
     void shouldManageListenerRegistrationLifecycle() {
         BasicListener listener = new BasicListener();
 
-        assertTrue(eventManager.addListener(listener));
+        assertTrue(eventManager.register(listener));
         assertTrue(eventManager.isRegistered(listener));
-        assertFalse(eventManager.addListener(listener));
+        assertFalse(eventManager.register(listener));
 
         eventManager.post(new BasicEvent());
         assertEquals(1, listener.counter.get());
 
-        assertTrue(eventManager.removeListener(listener));
+        assertTrue(eventManager.unregister(listener));
         assertFalse(eventManager.isRegistered(listener));
-        assertFalse(eventManager.removeListener(listener));
+        assertFalse(eventManager.unregister(listener));
 
         eventManager.post(new BasicEvent());
         assertEquals(1, listener.counter.get());
@@ -48,7 +48,7 @@ class EventManagerTest {
     @Test
     void shouldDispatchByDescendingPriority() {
         OrderListener listener = new OrderListener();
-        eventManager.addListener(listener);
+        eventManager.register(listener);
 
         eventManager.post(new OrderEvent());
 
@@ -58,7 +58,7 @@ class EventManagerTest {
     @Test
     void shouldStopDispatchWhenEventCancelled() {
         CancelListener listener = new CancelListener();
-        eventManager.addListener(listener);
+        eventManager.register(listener);
 
         CancelEvent event = new CancelEvent();
         eventManager.post(event);
@@ -71,7 +71,7 @@ class EventManagerTest {
     @Test
     void shouldApplyListenerFilters() {
         FilteredListener listener = new FilteredListener();
-        eventManager.addListener(listener);
+        eventManager.register(listener);
 
         ToggleFilter.allow = false;
         eventManager.post(new FilteredEvent());
@@ -85,7 +85,7 @@ class EventManagerTest {
     @Test
     void shouldDispatchAsyncListener() throws InterruptedException {
         AsyncListener listener = new AsyncListener();
-        eventManager.addListener(listener);
+        eventManager.register(listener);
 
         long callerThreadId = Thread.currentThread().getId();
         eventManager.post(new AsyncEvent(callerThreadId));
@@ -97,7 +97,7 @@ class EventManagerTest {
 
     @Test
     void shouldSupportStaticListenerMethods() {
-        eventManager.addListener(new StaticListener());
+        eventManager.register(new StaticListener());
 
         eventManager.post(new StaticEvent());
 
