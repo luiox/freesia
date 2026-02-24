@@ -1,5 +1,5 @@
 package com.github.luiox.freesia;
 
-public interface Cancellable {
+public interface ICancellable {
     boolean isCancelled();
 }

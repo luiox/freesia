@@ -104,6 +104,18 @@ class EventManagerTest {
         assertTrue(StaticListener.called.get());
     }
 
+    @Test
+    void shouldShowSimpleUsageExample() {
+        QuickStartListener listener = new QuickStartListener();
+
+        assertTrue(eventManager.register(listener));
+        Event event = new Event();
+        eventManager.post(event);
+
+        assertEquals(1, listener.counter.get());
+        assertTrue(eventManager.unregister(listener));
+    }
+
     public static class BasicEvent {}
 
     public static class BasicListener {
@@ -136,7 +148,7 @@ class EventManagerTest {
         }
     }
 
-    public static class CancelEvent implements Cancellable {
+    public static class CancelEvent implements ICancellable {
         private volatile boolean cancelled;
 
         @Override
@@ -214,6 +226,15 @@ class EventManagerTest {
         @Listener
         public static void onStatic(StaticEvent event) {
             called.set(true);
+        }
+    }
+
+    public static class QuickStartListener {
+        private final AtomicInteger counter = new AtomicInteger();
+
+        @Listener
+        public void onEvent(Event event) {
+            counter.incrementAndGet();
         }
     }
 }

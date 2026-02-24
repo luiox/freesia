@@ -7,7 +7,7 @@
 - 运行时零反射分发：注册时通过 `MethodHandle + LambdaMetafactory` 固化调用站点，触发阶段直接走函数接口调用。
 - 异步监听器支持：`@Listener(async = true)` 自动提交到内部线程池（默认 `CachedThreadPool`）。
 - 优先级排序：`@Listener(priority = int)`，数值越大越先执行，注册时完成静态排序。
-- 可取消传播：事件实现 `Cancellable` 后，一旦 `isCancelled()` 为 `true`，后续监听器停止执行。
+- 可取消传播：事件实现 `ICancellable` 后，一旦 `isCancelled()` 为 `true`，后续监听器停止执行。
 - 并发安全：核心结构基于 `ConcurrentHashMap + CopyOnWriteArrayList`，高频触发路径无锁读取。
 
 ## 注解示例
@@ -23,31 +23,24 @@ public void onEvent(MyEvent event) {
 
 ### 1) 定义事件
 
+最简单方式是直接使用内置的 `Event`：
+
 ```java
-public class PriceTickEvent {
+import com.github.luiox.freesia.Event;
+
+Event event = new Event();
+```
+
+也可以自定义事件类型：
+
+```java
+import com.github.luiox.freesia.Event;
+
+public class PriceTickEvent extends Event {
 	public final double price;
 
 	public PriceTickEvent(double price) {
 		this.price = price;
-	}
-}
-```
-
-如果需要支持中断传播：
-
-```java
-import com.github.luiox.freesia.Cancellable;
-
-public class OrderEvent implements Cancellable {
-	private volatile boolean cancelled;
-
-	@Override
-	public boolean isCancelled() {
-		return cancelled;
-	}
-
-	public void cancel() {
-		this.cancelled = true;
 	}
 }
 ```
@@ -84,21 +77,30 @@ bus.post(new PriceTickEvent(100.25));
 bus.unregister(listener);
 ```
 
-兼容说明：`addListener/removeListener` 仍可用，但已标记为兼容别名，建议迁移到 `register/unregister`。
+### 4) 最简示例
 
-## 单元测试
+```java
+import com.github.luiox.freesia.Event;
+import com.github.luiox.freesia.EventBus;
+import com.github.luiox.freesia.EventManager;
+import com.github.luiox.freesia.handler.Listener;
 
-- 运行全部测试：`./gradlew.bat test`
-- 覆盖文件：`src/test/java/com/github/luiox/freesia/EventManagerTest.java`
-- 覆盖场景：注册/注销、优先级顺序、异步监听、过滤器、可取消传播、静态方法监听
+public class Demo {
+	public static class MyListener {
+		@Listener
+		public void onEvent(Event event) {
+			System.out.println("received");
+		}
+	}
 
-## 性能测试
+	public static void main(String[] args) {
+		EventBus bus = new EventManager();
+		MyListener listener = new MyListener();
 
-项目内置了一个轻量 benchmark（默认跳过，避免影响日常 CI）：
+		bus.register(listener);
+		bus.post(new Event());
+		bus.unregister(listener);
+	}
+}
+```
 
-- 基准文件：`src/test/java/com/github/luiox/freesia/EventManagerPerformanceTest.java`
-- 运行命令：`./gradlew.bat test -Dfreesia.benchmark=true --tests com.github.luiox.freesia.EventManagerPerformanceTest`
-- 快捷命令：`./gradlew.bat benchmarkTest`
-- 输出指标：`ops/s` 与 `ns/op`
-
-建议在稳定环境下多次执行，关注中位数结果，避免单次抖动带来的误差。

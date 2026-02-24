@@ -37,7 +37,7 @@ public class EventManager implements EventBus {
             return event;
 
         for (EventHandler eventHandler : handlers) {
-            if (event instanceof Cancellable && ((Cancellable) event).isCancelled())
+            if (event instanceof ICancellable && ((ICancellable) event).isCancelled())
                 break;
 
             if (eventHandler.isAsync()) {
