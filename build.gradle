@@ -1,21 +1,35 @@
+import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
+
 plugins {
     id 'java'
+    id 'maven-publish'
 }
 
-group 'me.canrad'
-version '0.1'
+group = 'com.github.luiox'
+version = '1.9'
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
 repositories {
+    maven {
+        url = uri('https://maven.aliyun.com/repository/public/')
+    }
     mavenCentral()
+    maven {
+        url = uri('https://www.jitpack.io')
+    }
 }
 
 dependencies {
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.0'
+    testImplementation platform('org.junit:junit-bom:5.9.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
 test {
@@ -28,5 +42,43 @@ tasks.register('benchmarkTest', Test) {
     systemProperty 'freesia.benchmark', 'true'
     testLogging {
         showStandardStreams = true
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = project.group.toString()
+            artifactId = project.name
+            version = project.version.toString()
+            from components.java
+
+            pom {
+                name = "${project.group}:${project.name}"
+                description = 'A modern, high-performance, low-latency Java event bus'
+                url = 'https://github.com/luiox/freesia'
+
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://github.com/luiox/freesia/blob/main/LICENSE'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'luiox'
+                        name = 'Canrad'
+                        email = '1517807724@qq.com'
+                    }
+                }
+            }
+        }
+    }
+}
+
+tasks.withType(PublishToMavenRepository).configureEach {
+    onlyIf {
+        repository.name != 'MavenLocal' || project.hasProperty('publishToLocal')
     }
 }

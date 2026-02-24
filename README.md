@@ -2,6 +2,55 @@
 
 一个高性能、低延迟的事件系统，要求 Java 8 及以上。
 
+## 通过 JitPack 引入
+
+仓库地址：`https://github.com/luiox/freesia`
+
+依赖坐标格式：`com.github.luiox:freesia:<tag>`
+
+### Gradle (Groovy DSL)
+
+```groovy
+repositories {
+		mavenCentral()
+		maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+	implementation 'com.github.luiox:freesia:v0.2'
+}
+```
+
+### Gradle (Kotlin DSL)
+
+```kotlin
+repositories {
+		mavenCentral()
+		maven("https://jitpack.io")
+}
+
+dependencies {
+	implementation("com.github.luiox:freesia:v0.2")
+}
+```
+
+
+
+## 在 JitPack 发布步骤
+
+> 已完成仓库侧发布配置（`maven-publish`）。
+
+1. 提交并推送当前代码到 GitHub 主分支。
+2. 创建版本标签（示例）：
+
+```bash
+git tag v1.9
+git push origin v1.9
+```
+
+3. 打开 `https://jitpack.io/#luiox/freesia`，点击 **Get it** 触发构建。
+4. 构建成功后即可通过 `com.github.luiox:freesia:v1.9` 引入。
+
 ## 核心特性
 
 - 运行时零反射分发：注册时通过 `MethodHandle + LambdaMetafactory` 固化调用站点，触发阶段直接走函数接口调用。
