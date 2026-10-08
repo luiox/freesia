@@ -17,7 +17,7 @@ repositories {
 }
 
 dependencies {
-	implementation 'com.github.luiox:freesia:v2.0'
+	implementation 'com.github.luiox:freesia:v2.2'
 }
 ```
 
@@ -50,6 +50,37 @@ dependencies {
 **线程守卫（可选）。** `EventThreadGuard` 可以声明某个事件只允许特定线程派发。渲染线程和客户端线程共享模块可变字段是真实的数据竞争，守卫把它变成第一次就崩溃，而不是线上偶发。
 
 **重入检测。** 单例事件在派发途中被再次派发会抛 `ReentrantPostException`。契约错误属于总线的问题，不当作监听器失败隔离。
+
+## 计算调度器（2.2 新增）
+
+事件总线管「通知」，计算调度器管「算」。CPU 密集、可以忍受一拍延迟的工作（搜索、预判、打分）不该挤在通知线程上，也不该每个项目自己手写守护线程加 sleep 轮询——这两条路一个拖垮帧时间，一个空转烧 CPU。调度器只有两个类型：
+
+```java
+ComputeScheduler scheduler = ComputeScheduler.withDefaultThreads(); // 核数-1，上限 6，守护线程
+
+LatestTask<Plan> task = new LatestTask<>() {
+    @Override
+    protected Plan compute() {
+        return plan(snapshot);   // 纯函数：输入输出全部不可变，不碰任何活动状态
+    }
+};
+scheduler.execute(task);
+long lastSubmitted = task.seq;
+
+// 下一拍，提交线程上：
+Plan plan = task.takeIfLatest(lastSubmitted);  // 陈旧、未完成、失败 -> 全部是 null
+if (plan != null) {
+    consume(plan);
+}
+```
+
+三条契约，违反任何一条都会产生「偶尔行为异常、重开一次又好了」的 bug：
+
+1. **`compute()` 是纯函数**，只读构造时抓好的不可变快照，不碰任何会被别人改写的状态。
+2. **消费只走 `takeIfLatest`**。丢弃陈旧结果是强制的，不是可选的——陈旧结果描述的世界已经不存在了。
+3. **一拍最多一个在飞的任务**。新的提交覆盖旧的，没有背压，因为背压在这里没有意义。
+
+任务抛异常时 `done` 保持 `false`，`takeIfLatest` 返回 `null`，worker 继续接活；异常同时上报给 `addExceptionHandler` 注册的处理器（默认打一条 warning 日志）。线程是守护线程，`shutdown()` / `close()` 之后拒绝新任务并返回 `false`，调用方据此知道「永远不会有结果了」。
 
 ## 实测数据
 
