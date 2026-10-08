@@ -31,7 +31,7 @@ import java.util.function.Consumer;
  *       tasks - the only thing the two subsystems share is an immutable result object.</li>
  * </ol>
  *
- * <p>Tasks that throw are reported to the {@link #setExceptionHandler exception handler} and
+ * <p>Tasks that throw are reported to the {@link #addExceptionHandler exception handler} and
  * otherwise ignored; a failing computation must not take the worker down.
  */
 public final class ComputeScheduler implements AutoCloseable {
