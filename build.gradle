@@ -6,10 +6,21 @@ plugins {
 }
 
 group = 'com.github.luiox'
-version = '1.9'
+version = '2.0'
 
 tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
+	options.encoding = 'UTF-8'
+}
+
+tasks.withType(Javadoc).configureEach {
+	// Without this the javadoc tool reads the UTF-8 sources with the platform default
+	// charset and every non-ASCII comment comes out as mojibake - or fails outright.
+	options.encoding = 'UTF-8'
+	options.charSet = 'UTF-8'
+	options.docEncoding = 'UTF-8'
+	// Keep the checks that catch real damage (malformed HTML, broken @link) but stop
+	// insisting on a @param for every public member of an internal type.
+	options.addStringOption('Xdoclint:all,-missing', '-quiet')
 }
 
 java {
@@ -38,10 +49,18 @@ test {
 
 tasks.register('benchmarkTest', Test) {
     useJUnitPlatform()
+    // A bare Test task has no classpath of its own, so without these two lines the task
+    // silently finds nothing to run.
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
     include '**/EventManagerPerformanceTest.class'
     systemProperty 'freesia.benchmark', 'true'
+    // Microbenchmarks are only meaningful on a quiet machine; the default per-test fork
+    // would compete with the JIT for the cores being measured.
+    maxParallelForks = 1
     testLogging {
         showStandardStreams = true
+        events 'passed', 'failed'
     }
 }
 

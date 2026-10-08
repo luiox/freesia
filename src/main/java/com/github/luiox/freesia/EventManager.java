@@ -1,94 +1,144 @@
 package com.github.luiox.freesia;
 
-import com.github.luiox.freesia.handler.EventHandler;
-import com.github.luiox.freesia.handler.EventHandlerScanner;
-import com.github.luiox.freesia.handler.MethodHandlerScanner;
+import com.github.luiox.freesia.dispatch.Bucket;
+import com.github.luiox.freesia.dispatch.DispatchContext;
+import com.github.luiox.freesia.handler.ListenerScanner;
+import com.github.luiox.freesia.handler.MethodListenerScanner;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class EventManager implements EventBus {
-    private final Map<Object, Map<Class<?>, List<EventHandler>>> listenerHandlers = new ConcurrentHashMap<>();
-    private final Map<Class<?>, CopyOnWriteArrayList<EventHandler>> handlersByEventType = new ConcurrentHashMap<>();
-    private final EventHandlerScanner eventHandlerScanner = new MethodHandlerScanner();
-    private final ExecutorService executorService;
+/**
+ * The default {@link EventBus}.
+ *
+ * <p>Safe to post from several threads and to register from several threads. Dispatch
+ * itself takes no lock: it reads an immutable snapshot through a single volatile field.
+ * Registration and unregistration do synchronise, but only against each other, and the
+ * map mutation is a single atomic operation.
+ */
+public final class EventManager implements EventBus {
+
+    private final Map<Class<? extends Event>, Bucket> buckets = new ConcurrentHashMap<>();
+    private final Map<Object, List<EventListener>> registered = new ConcurrentHashMap<>();
+    private final DispatchContext context = new DispatchContext();
+    private final ListenerScanner scanner;
+
+    private volatile EventThreadGuard threadGuard;
 
     public EventManager() {
-        this(Executors.newCachedThreadPool());
+        this(new MethodListenerScanner());
     }
 
-    public EventManager(ExecutorService executorService) {
-        this.executorService = executorService;
+    public EventManager(ListenerScanner scanner) {
+        this.scanner = Objects.requireNonNull(scanner, "scanner");
     }
 
-    public <E> E post(E event) {
+    @Override
+    public <E extends Event> E post(E event) {
         Objects.requireNonNull(event, "event");
-        CopyOnWriteArrayList<EventHandler> handlers = this.handlersByEventType.get(event.getClass());
-        if (handlers == null || handlers.isEmpty())
+        Bucket bucket = this.buckets.get(event.getClass());
+        if (bucket == null) {
             return event;
+        }
 
-        for (EventHandler eventHandler : handlers) {
-            if (event instanceof ICancellable && ((ICancellable) event).isCancelled())
-                break;
+        EventThreadGuard guard = this.threadGuard;
+        if (guard != null && !guard.isValidThread(event.getClass(), Thread.currentThread())) {
+            guard.onViolation(event.getClass(), Thread.currentThread());
+        }
 
-            if (eventHandler.isAsync()) {
-                this.executorService.execute(() -> eventHandler.handle(event));
-            } else {
-                eventHandler.handle(event);
+        if (event instanceof SingletonEvent singleton) {
+            if (!singleton.tryBeginDispatch()) {
+                throw new ReentrantPostException(event.getClass());
             }
+            try {
+                bucket.dispatch(event);
+            } finally {
+                singleton.endDispatch();
+            }
+        } else {
+            bucket.dispatch(event);
         }
         return event;
     }
 
-    public boolean isRegistered(Object listener) {
-        Objects.requireNonNull(listener, "listener");
-        return this.listenerHandlers.containsKey(listener);
+    @Override
+    public <E extends Event> boolean hasListeners(Class<E> eventType) {
+        Bucket bucket = this.buckets.get(eventType);
+        return bucket != null && bucket.size() > 0;
     }
 
-    public synchronized boolean register(Object listenerContainer) {
+    @Override
+    public boolean register(Object listenerContainer) {
         Objects.requireNonNull(listenerContainer, "listenerContainer");
-        if (this.listenerHandlers.containsKey(listenerContainer))
+        if (this.registered.containsKey(listenerContainer)) {
             return false;
-
-        Map<Class<?>, Set<EventHandler>> eventHandlers = this.eventHandlerScanner.locate(listenerContainer);
-        if (eventHandlers.isEmpty())
+        }
+        List<EventListener> listeners = this.scanner.locate(listenerContainer);
+        if (listeners.isEmpty()) {
             return false;
-
-        Map<Class<?>, List<EventHandler>> indexedHandlers = new HashMap<>();
-        eventHandlers.forEach((eventType, handlers) -> {
-            CopyOnWriteArrayList<EventHandler> bucket = this.handlersByEventType.computeIfAbsent(eventType, key -> new CopyOnWriteArrayList<>());
-            bucket.addAll(handlers);
-            bucket.sort(Comparator.naturalOrder());
-            indexedHandlers.put(eventType, new ArrayList<>(handlers));
-        });
-
-        return (this.listenerHandlers.put(listenerContainer, indexedHandlers) == null);
-    }
-
-    public synchronized boolean unregister(Object listenerContainer) {
-        Objects.requireNonNull(listenerContainer, "listenerContainer");
-        Map<Class<?>, List<EventHandler>> registeredHandlers = this.listenerHandlers.remove(listenerContainer);
-        if (registeredHandlers == null)
+        }
+        // Claim first, publish second: a concurrent register of the same instance must not
+        // be able to slip a second copy of the same listeners into the buckets.
+        if (this.registered.putIfAbsent(listenerContainer, listeners) != null) {
             return false;
-
-        registeredHandlers.forEach((eventType, handlers) -> {
-            CopyOnWriteArrayList<EventHandler> bucket = this.handlersByEventType.get(eventType);
-            if (bucket == null)
-                return;
-
-            bucket.removeAll(handlers);
-            if (bucket.isEmpty())
-                this.handlersByEventType.remove(eventType, bucket);
-        });
+        }
+        for (EventListener listener : listeners) {
+            bucketFor(listener.eventType()).insert(listener);
+        }
         return true;
+    }
+
+    @Override
+    public boolean unregister(Object listenerContainer) {
+        List<EventListener> listeners = this.registered.remove(listenerContainer);
+        if (listeners == null) {
+            return false;
+        }
+        for (EventListener listener : listeners) {
+            // computeIfPresent, not remove(key, value): a bucket emptied by this removal may
+            // already have received a listener from a concurrent register, and dropping the
+            // whole map entry would take that one down with it.
+            this.buckets.computeIfPresent(listener.eventType(), (type, bucket) ->
+                    bucket.remove(listener) && bucket.size() == 0 ? null : bucket);
+        }
+        return true;
+    }
+
+    private Bucket bucketFor(Class<? extends Event> eventType) {
+        return this.buckets.computeIfAbsent(eventType,
+                type -> new Bucket(ICancellable.class.isAssignableFrom(type), this.context));
+    }
+
+    /**
+     * Replaces the handler that receives exceptions thrown by listeners. Reasonable to
+     * call after construction; the swap reaches every existing bucket immediately.
+     */
+    public EventManager setErrorHandler(ListenerErrorHandler errorHandler) {
+        this.context.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
+        return this;
+    }
+
+    /**
+     * Installs a check that an event is posted from an allowed thread. Passing
+     * {@link EventThreadGuard#ACCEPT_ALL} removes the check.
+     *
+     * <p>The guard runs once per post, before any listener, so a violation is reported
+     * without any listener having run against state it should not have touched.
+     */
+    public EventManager setThreadGuard(EventThreadGuard guard) {
+        this.threadGuard = guard;
+        return this;
+    }
+
+    public boolean isRegistered(Object listenerContainer) {
+        return this.registered.containsKey(listenerContainer);
+    }
+
+    /** The listeners currently registered for one event type, in dispatch order. */
+    public List<EventListener> listenersOf(Class<? extends Event> eventType) {
+        Bucket bucket = this.buckets.get(eventType);
+        return bucket == null ? List.of() : bucket.listeners();
     }
 }
