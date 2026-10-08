@@ -17,9 +17,13 @@ repositories {
 }
 
 dependencies {
-	implementation 'com.github.luiox:freesia:v2.2'
+	implementation 'com.github.luiox:freesia:v2.3'
 }
 ```
+
+## 2.2 的破坏性变更（无，2.2 与 2.3 仅新增计算调度器）
+
+（原 2.0 变更清单如下）
 
 ## 2.0 的破坏性变更
 
@@ -51,7 +55,7 @@ dependencies {
 
 **重入检测。** 单例事件在派发途中被再次派发会抛 `ReentrantPostException`。契约错误属于总线的问题，不当作监听器失败隔离。
 
-## 计算调度器（2.2 新增）
+## 计算调度器（2.3 新增）
 
 事件总线管「通知」，计算调度器管「算」。CPU 密集、可以忍受一拍延迟的工作（搜索、预判、打分）不该挤在通知线程上，也不该每个项目自己手写守护线程加 sleep 轮询——这两条路一个拖垮帧时间，一个空转烧 CPU。调度器只有两个类型：
 

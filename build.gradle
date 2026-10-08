@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.github.luiox'
-version = '2.2'
+version = '2.3'
 
 tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
