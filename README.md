@@ -1,6 +1,8 @@
 # freesia
 
-一个零分配、低延迟的 Java 事件总线。Java 8+。
+一个零分配、低延迟的 Java 事件总线。**需要 Java 11+**（构建用 `options.release = 11` 锁住）。
+
+Java 11 是硬下限，不是保守选择：派发路径依赖 `MethodHandles.privateLookupIn`、`Method.trySetAccessible` 和 `System.Logger`（都是 Java 9），诊断用的 `List.copyOf` 是 Java 10。把 release 钉死是为了让编译器在有人误用更高版本 API 时直接报错，而不是把这个下限变成别人构建里的一个莫名编译错误。
 
 ## 通过 JitPack 引入
 

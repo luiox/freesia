@@ -48,7 +48,8 @@ public final class EventManager implements EventBus {
             guard.onViolation(event.getClass(), Thread.currentThread());
         }
 
-        if (event instanceof SingletonEvent singleton) {
+        if (event instanceof SingletonEvent) {
+            SingletonEvent singleton = (SingletonEvent) event;
             if (!singleton.tryBeginDispatch()) {
                 throw new ReentrantPostException(event.getClass());
             }

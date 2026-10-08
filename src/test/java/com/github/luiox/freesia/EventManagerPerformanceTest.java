@@ -151,7 +151,10 @@ class EventManagerPerformanceTest {
 
     private static com.sun.management.ThreadMXBean allocationBean() {
         java.lang.management.ThreadMXBean bean = ManagementFactory.getThreadMXBean();
-        return bean instanceof com.sun.management.ThreadMXBean hotSpot ? hotSpot : null;
+        if (bean instanceof com.sun.management.ThreadMXBean) {
+            return (com.sun.management.ThreadMXBean) bean;
+        }
+        return null;
     }
 
     // --- fixtures -------------------------------------------------------------------------

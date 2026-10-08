@@ -10,6 +10,11 @@ version = '2.0'
 
 tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
+	// The dispatch path needs MethodHandles.privateLookupIn, Method.trySetAccessible and
+	// System.Logger, which are Java 9; List.copyOf in the diagnostic accessor is Java 10.
+	// Pinning release here makes the compiler reject any newer API by accident, instead of
+	// leaving the true baseline to be discovered as a compile error in someone else's build.
+	options.release = 11
 }
 
 tasks.withType(Javadoc).configureEach {
